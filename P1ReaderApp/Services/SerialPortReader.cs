@@ -138,7 +138,7 @@ namespace P1ReaderApp.Services
                 {
                     foreach (var message in messages)
                     {
-                        Log.Debug("Serial message:{message}", message);
+                        Log.Verbose("Serial message:{message}", message);
                     }
                 }
             }

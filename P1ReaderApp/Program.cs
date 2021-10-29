@@ -7,7 +7,6 @@ using P1ReaderApp.Model;
 using P1ReaderApp.Services;
 using P1ReaderApp.Storage;
 using Serilog;
-using Serilog.Events;
 using System;
 using System.IO;
 using System.Threading;
@@ -19,25 +18,6 @@ namespace P1ReaderApp
     {
         private static IMessageBuffer<P1Measurements> _measurementsBuffer;
         private static IMessageBuffer<P1MessageCollection> _serialMessageBuffer;
-
-        private static void CreateDaemonLogger(
-            int minLogLevel)
-        {
-            Log.Logger = new LoggerConfiguration()
-                                .MinimumLevel.Is((LogEventLevel)minLogLevel)
-                                .WriteTo.Console()
-                                .WriteTo.File("log.txt", restrictedToMinimumLevel: LogEventLevel.Warning)
-                                .CreateLogger();
-        }
-
-        private static void CreateStatusLogger()
-        {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Error()
-                .WriteTo.Console()
-                .WriteTo.File("log.txt", restrictedToMinimumLevel: LogEventLevel.Warning)
-                .CreateLogger();
-        }
 
         private static Action<CommandLineApplication> DebugApplication(
             P1Config config)
@@ -51,8 +31,6 @@ namespace P1ReaderApp
                 {
                     try
                     {
-                        CreateStatusLogger();
-
                         IStatusPrintService statusPrintService = new ConsoleStatusPrintService();
                         _measurementsBuffer.RegisterMessageHandler(statusPrintService.UpdateP1Measurements);
                         _serialMessageBuffer.RegisterMessageHandler(statusPrintService.UpdateRawData);
@@ -88,15 +66,10 @@ namespace P1ReaderApp
                 target.Description = "Write to mysqldb";
                 target.HelpOption("-? | -h | --help");
 
-                var loggingOption = target.CreateLoggingOption();
-
                 target.OnExecute(async () =>
                 {
                     try
                     {
-                        var loglevel = loggingOption.GetOptionalIntValue(3);
-                        CreateDaemonLogger(loglevel);
-
                         IStorage storage = new MysqlDbStorage(mysqldbConnectionstring);
                         _measurementsBuffer.RegisterMessageHandler(storage.SaveP1Measurement);
 
@@ -128,15 +101,10 @@ namespace P1ReaderApp
                 target.Description = "Write to sqlite";
                 target.HelpOption("-? | -h | --help");
 
-                var loggingOption = target.CreateLoggingOption();
-
                 target.OnExecute(async () =>
                 {
                     try
                     {
-                        var loglevel = loggingOption.GetOptionalIntValue(3);
-                        CreateDaemonLogger(loglevel);
-
                         IStorage storage = new SqLiteStorage(async timestamp => await CreateSqliteConnection(timestamp, configurationSection));
                         _measurementsBuffer.RegisterMessageHandler(storage.SaveP1Measurement);
 
@@ -173,8 +141,14 @@ namespace P1ReaderApp
 
             var diffDays = (timestamp.Date - _lastTimeStamp.Value.Date).TotalDays;
 
+            Log.Debug("A sqlite connection requested with diffDays={diffDays}", diffDays);
+
             if (diffDays < 0)
             {
+                _lastTimeStamp = timestamp;
+
+                Log.Warning("Unexpected timestamp. This means that we already moved on to the next day, but there is still a measurement coming in from the previous day.");
+
                 // This means that we already moved on to the next day, but there is still a measurement coming in from the previous day
                 return null;
             }
@@ -194,12 +168,16 @@ namespace P1ReaderApp
                 _currentConnection = await InitConnection(dbFileNameForTimestamp);
             }
 
+            _lastTimeStamp = timestamp;
+
             return _currentConnection;
         }
 
         private static async Task<SqliteConnection> InitConnection(
             string dbFilePath)
         {
+            Log.Information("Initializing new sqlite connection to {dbFilePath}", dbFilePath);
+
             var connection = new SqliteConnection($"Data Source={dbFilePath}");
 
             await connection.OpenAsync();
@@ -219,11 +197,18 @@ namespace P1ReaderApp
         {
             var dataSourceFileInfo = new FileInfo(_currentConnection.DataSource);
 
-            await _currentConnection.CloseAsync()
-                .ContinueWith(t =>
-                {
-                    File.Move(dataSourceFileInfo.FullName, Path.Combine(archiveDbPath, dataSourceFileInfo.Name));
-                });
+            Log.Information("Rotating {dataSourceFileInfo} to archive @ {archiveDbPath}", dataSourceFileInfo, archiveDbPath);
+
+            await _currentConnection.CloseAsync();
+
+            try
+            {
+                File.Move(dataSourceFileInfo.FullName, Path.Combine(archiveDbPath, dataSourceFileInfo.Name));
+            }
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "Unexpected exception during rotation of sqlite connection {dataSourceFileInfo}", dataSourceFileInfo);
+            }
         }
 
         private static Action<CommandLineApplication> InfluxDbApplication(
@@ -234,8 +219,6 @@ namespace P1ReaderApp
                 target.Description = "Write to influxdb";
                 target.HelpOption("-? | -h | --help");
 
-                var loggingOption = target.CreateLoggingOption();
-
                 var influxHostOption = target.CreateInfluxHostOption();
                 var influxDatabaseOption = target.CreateInfluxDatabaseOption();
                 var influxUsernameOption = target.CreateInfluxUserNameOption();
@@ -245,9 +228,6 @@ namespace P1ReaderApp
                 {
                     try
                     {
-                        var loglevel = loggingOption.GetOptionalIntValue(3);
-                        CreateDaemonLogger(loglevel);
-
                         var influxHost = influxHostOption.GetRequiredStringValue();
                         var influxDatabase = influxDatabaseOption.GetRequiredStringValue();
                         var influxUsername = influxUsernameOption.GetOptionalStringValue(null);
@@ -282,6 +262,10 @@ namespace P1ReaderApp
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json", optional: false)
                 .Build();
+
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(config)
+                .CreateLogger();
 
             var p1Config = new P1Config();
 

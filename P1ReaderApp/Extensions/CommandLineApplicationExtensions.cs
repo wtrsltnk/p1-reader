@@ -15,8 +15,5 @@ namespace P1ReaderApp.Extensions
 
         public static CommandOption CreateInfluxUserNameOption(this CommandLineApplication app) =>
             app.Option("--influxusername", "InfluxDB database username", CommandOptionType.SingleValue);
-
-        public static CommandOption CreateLoggingOption(this CommandLineApplication app) =>
-            app.Option("--logging", "Log level to display (0 = Verbose, 1 = Debug, 2 = Information, 3 = Warning, 4 = Error, 5 = Fatal)", CommandOptionType.SingleValue);
     }
 }

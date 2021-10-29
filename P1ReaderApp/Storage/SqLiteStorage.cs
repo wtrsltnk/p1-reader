@@ -79,7 +79,7 @@ namespace P1ReaderApp.Storage
                     throw new StorageWriteException($"Error writing to sqlite: {result} rows affected");
                 }
 
-                Log.Debug("Saving P1 measurement to Sqlite was succesfull");
+                Log.Verbose("Saving P1 measurement to Sqlite was succesfull");
             });
         }
 

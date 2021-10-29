@@ -34,7 +34,7 @@ namespace P1ReaderApp.Storage
 
         public async Task SaveP1Measurement(P1Measurements p1Measurements)
         {
-            Log.Debug("Saving P1 measurement ({timestamp}) to MysqlDB {@measurements}", p1Measurements.TimeStamp, p1Measurements);
+            Log.Verbose("Saving P1 measurement ({timestamp}) to MysqlDB {@measurements}", p1Measurements.TimeStamp, p1Measurements);
 
             var command = _connection.CreateCommand();
             
