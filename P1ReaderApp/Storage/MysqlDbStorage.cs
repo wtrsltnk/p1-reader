@@ -1,4 +1,5 @@
-﻿using MySql.Data.MySqlClient;
+﻿using Microsoft.Extensions.Configuration;
+using MySql.Data.MySqlClient;
 using P1ReaderApp.Exceptions;
 using P1ReaderApp.Model;
 using Polly;
@@ -14,9 +15,10 @@ namespace P1ReaderApp.Storage
         private readonly MySqlConnection _connection;
         private readonly AsyncRetryPolicy _retryPolicy;
 
-        public MysqlDbStorage(string connectionstring)
+        public MysqlDbStorage(
+            IConfiguration config)
         {
-            _connection = new MySqlConnection(connectionstring);
+            _connection = new MySqlConnection(config.GetSection("MysqlConnection").Value);
             _connection.Open();
 
             _retryPolicy = Policy

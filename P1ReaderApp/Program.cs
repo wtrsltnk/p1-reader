@@ -1,8 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Configuration;
-using P1ReaderApp.Exceptions;
-using P1ReaderApp.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 using P1ReaderApp.Model;
 using P1ReaderApp.Services;
 using P1ReaderApp.Storage;
@@ -14,248 +13,104 @@ using System.Threading.Tasks;
 
 namespace P1ReaderApp
 {
-    internal static class Program
+    internal class Program
     {
-        private static IMessageBuffer<P1Measurements> _measurementsBuffer;
-        private static IMessageBuffer<P1MessageCollection> _serialMessageBuffer;
-
-        private static Action<CommandLineApplication> DebugApplication(
-            P1Config config)
+        public Program(
+            IConfiguration config)
         {
-            return (target) =>
-            {
-                target.Description = "Show debug information";
-                target.HelpOption("-? | -h | --help");
-
-                target.OnExecute(async () =>
-                {
-                    try
-                    {
-                        IStatusPrintService statusPrintService = new ConsoleStatusPrintService();
-                        _measurementsBuffer.RegisterMessageHandler(statusPrintService.UpdateP1Measurements);
-                        _serialMessageBuffer.RegisterMessageHandler(statusPrintService.UpdateRawData);
-
-                        var serialPortReader = new SerialPortReader(config.Port, config.BaudRate, config.StopBits, config.Parity, config.DataBits, _serialMessageBuffer);
-                        serialPortReader.StartReading();
-
-                        while (true)
-                        {
-                            Console.ReadLine();
-                        }
-                    }
-                    catch (ConfigurationValueRequiredException exception)
-                    {
-                        Console.WriteLine(exception.Message);
-                    }
-                    catch (Exception exception)
-                    {
-                        Log.Fatal(exception, "Unexpected exception during startup");
-                    }
-
-                    return await WaitForCancellation();
-                });
-            };
+            Configuration = config;
         }
 
-        private static Action<CommandLineApplication> MysqlDbApplication(
-            P1Config config,
-            string mysqldbConnectionstring)
+        public IConfiguration Configuration { get; }
+
+        public void ConfigureServices(
+            IServiceCollection services,
+            CommandLineApplication commandLineApplication)
         {
-            return (target) =>
-            {
-                target.Description = "Write to mysqldb";
-                target.HelpOption("-? | -h | --help");
+            services.AddScoped(s => Configuration);
 
-                target.OnExecute(async () =>
-                {
-                    try
-                    {
-                        IStorage storage = new MysqlDbStorage(mysqldbConnectionstring);
-                        _measurementsBuffer.RegisterMessageHandler(storage.SaveP1Measurement);
+            services.AddScoped<IMessageBuffer<P1MessageCollection>, MessageBuffer<P1MessageCollection>>();
+            services.AddScoped<IMessageBuffer<P1Measurements>, MessageBuffer<P1Measurements>>();
+            services.AddScoped<MessageParser>();
+            services.AddScoped<SerialPortReader>();
 
-                        var serialPortReader = new SerialPortReader(config.Port, config.BaudRate, config.StopBits, config.Parity, config.DataBits, _serialMessageBuffer);
-                        serialPortReader.StartReading();
-
-                        Console.ReadLine();
-                    }
-                    catch (ConfigurationValueRequiredException exception)
-                    {
-                        Console.WriteLine(exception.Message);
-                    }
-                    catch (Exception exception)
-                    {
-                        Log.Fatal(exception, "Unexpected exception during startup");
-                    }
-
-                    return await WaitForCancellation();
-                });
-            };
-        }
-
-        private static Action<CommandLineApplication> SqliteApplication(
-            P1Config config,
-            IConfigurationSection configurationSection)
-        {
-            return (target) =>
+            commandLineApplication.Command("sqlite", target =>
             {
                 target.Description = "Write to sqlite";
                 target.HelpOption("-? | -h | --help");
 
-                target.OnExecute(async () =>
+                target.OnExecute(() =>
                 {
-                    try
-                    {
-                        IStorage storage = new SqLiteStorage(async timestamp => await CreateSqliteConnection(timestamp, configurationSection));
-                        _measurementsBuffer.RegisterMessageHandler(storage.SaveP1Measurement);
+                    services.AddScoped<IConnectionFactory<SqliteConnection>, SqliteConnectionFactory>();
+                    services.AddScoped<IStorage, SqLiteStorage>();
 
-                        var serialPortReader = new SerialPortReader(config.Port, config.BaudRate, config.StopBits, config.Parity, config.DataBits, _serialMessageBuffer);
-                        serialPortReader.StartReading();
-
-                        Console.ReadLine();
-                    }
-                    catch (ConfigurationValueRequiredException exception)
-                    {
-                        Console.WriteLine(exception.Message);
-                    }
-                    catch (Exception exception)
-                    {
-                        Log.Fatal(exception, "Unexpected exception during startup");
-                    }
-
-                    return await WaitForCancellation();
+                    return 0;
                 });
-            };
-        }
+            });
 
-        private static DateTime? _lastTimeStamp = null;
-        private static SqliteConnection _currentConnection = null;
-
-        private static async Task<SqliteConnection> CreateSqliteConnection(
-                DateTime timestamp,
-                IConfigurationSection configurationSection)
-        {
-            if (!_lastTimeStamp.HasValue)
+            commandLineApplication.Command("mysql", target =>
             {
-                _lastTimeStamp = timestamp;
-            }
+                target.Description = "Write to mysql";
+                target.HelpOption("-? | -h | --help");
 
-            var diffDays = (timestamp.Date - _lastTimeStamp.Value.Date).TotalDays;
+                target.OnExecute(() =>
+                {
+                    services.AddScoped<IStorage, MysqlDbStorage>();
 
-            Log.Debug("A sqlite connection requested with diffDays={diffDays}", diffDays);
+                    return 0;
+                });
+            });
 
-            if (diffDays < 0)
-            {
-                _lastTimeStamp = timestamp;
-
-                Log.Warning("Unexpected timestamp. This means that we already moved on to the next day, but there is still a measurement coming in from the previous day.");
-
-                // This means that we already moved on to the next day, but there is still a measurement coming in from the previous day
-                return null;
-            }
-
-            var localDbPath = configurationSection["LocalDbPath"];
-            var archiveDbPath = configurationSection["ArchiveDbPath"];
-            var dbFileNameForTimestamp = Path.Combine(localDbPath, $"{timestamp:yyyyMMdd}-p1power.db");
-
-            if (diffDays > 0 && _currentConnection != null)
-            {
-                await RotateCurrentConnectionToArchive(archiveDbPath);
-                _currentConnection = null;
-            }
-
-            if (_currentConnection == null)
-            {
-                _currentConnection = await InitConnection(dbFileNameForTimestamp);
-            }
-
-            _lastTimeStamp = timestamp;
-
-            return _currentConnection;
-        }
-
-        private static async Task<SqliteConnection> InitConnection(
-            string dbFilePath)
-        {
-            Log.Information("Initializing new sqlite connection to {dbFilePath}", dbFilePath);
-
-            var connection = new SqliteConnection($"Data Source={dbFilePath}");
-
-            await connection.OpenAsync();
-
-            using (var cmd = connection.CreateCommand())
-            {
-                cmd.CommandText = SqLiteStorage.CreateTableQuery;
-
-                await cmd.ExecuteNonQueryAsync();
-            }
-
-            return connection;
-        }
-
-        private static async Task RotateCurrentConnectionToArchive(
-            string archiveDbPath)
-        {
-            var dataSourceFileInfo = new FileInfo(_currentConnection.DataSource);
-
-            Log.Information("Rotating {dataSourceFileInfo} to archive @ {archiveDbPath}", dataSourceFileInfo, archiveDbPath);
-
-            await _currentConnection.CloseAsync();
-
-            try
-            {
-                File.Move(dataSourceFileInfo.FullName, Path.Combine(archiveDbPath, dataSourceFileInfo.Name));
-            }
-            catch (Exception ex)
-            {
-                Log.Fatal(ex, "Unexpected exception during rotation of sqlite connection {dataSourceFileInfo}", dataSourceFileInfo);
-            }
-        }
-
-        private static Action<CommandLineApplication> InfluxDbApplication(
-            P1Config config)
-        {
-            return (target) =>
+            commandLineApplication.Command("influxdb", target =>
             {
                 target.Description = "Write to influxdb";
                 target.HelpOption("-? | -h | --help");
 
-                var influxHostOption = target.CreateInfluxHostOption();
-                var influxDatabaseOption = target.CreateInfluxDatabaseOption();
-                var influxUsernameOption = target.CreateInfluxUserNameOption();
-                var influxPasswordOption = target.CreateInfluxPasswordOption();
-
-                target.OnExecute(async () =>
+                target.OnExecute(() =>
                 {
-                    try
-                    {
-                        var influxHost = influxHostOption.GetRequiredStringValue();
-                        var influxDatabase = influxDatabaseOption.GetRequiredStringValue();
-                        var influxUsername = influxUsernameOption.GetOptionalStringValue(null);
-                        var influxPassword = influxPasswordOption.GetOptionalStringValue(null);
+                    services.AddScoped<IStorage, InfluxDbStorage>();
 
-                        IStorage storage = new InfluxDbStorage(influxHost, influxDatabase, influxUsername, influxPassword);
-                        _measurementsBuffer.RegisterMessageHandler(storage.SaveP1Measurement);
-
-                        var serialPortReader = new SerialPortReader(config.Port, config.BaudRate, config.StopBits, config.Parity, config.DataBits, _serialMessageBuffer);
-                        serialPortReader.StartReading();
-
-                        Console.ReadLine();
-                    }
-                    catch (ConfigurationValueRequiredException exception)
-                    {
-                        Console.WriteLine(exception.Message);
-                    }
-                    catch (Exception exception)
-                    {
-                        Log.Fatal(exception, "Unexpected exception during startup");
-                    }
-
-                    return await WaitForCancellation();
+                    return 0;
                 });
-            };
+            });
         }
 
-        private static void Main(
+        public async Task Run(
+            IServiceProvider serviceProvider)
+        {
+            try
+            {
+                var config = serviceProvider.GetService<IConfiguration>();
+
+                Log.Logger = new LoggerConfiguration()
+                    .ReadFrom.Configuration(config)
+                    .CreateLogger();
+
+                var serialMessageBuffer = serviceProvider.GetService<IMessageBuffer<P1MessageCollection>>();
+                var measurementsBuffer = serviceProvider.GetService<IMessageBuffer<P1Measurements>>();
+                var messageParser = serviceProvider.GetService<MessageParser>();
+                var storage = serviceProvider.GetService<IStorage>();
+
+                serialMessageBuffer.RegisterMessageHandler(messageParser.ParseSerialMessages);
+                measurementsBuffer.RegisterMessageHandler(storage.SaveP1Measurement);
+
+                var serialPortReader = serviceProvider.GetService<SerialPortReader>();
+
+                serialPortReader.StartReading();
+
+                Console.ReadLine();
+
+                await WaitForCancellation();
+            }
+            catch (Exception exc)
+            {
+                Log.Fatal(exc, "Fatal exception during application execute");
+                throw;
+            }
+        }
+
+
+        private static async Task Main(
             string[] args)
         {
             var config = new ConfigurationBuilder()
@@ -263,28 +118,14 @@ namespace P1ReaderApp
                 .AddJsonFile("appsettings.json", optional: false)
                 .Build();
 
-            Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(config)
-                .CreateLogger();
+            var program = new Program(config);
 
-            var p1Config = new P1Config();
-
-            config.GetSection("P1Config").Bind(p1Config);
-
-            _serialMessageBuffer = new MessageBuffer<P1MessageCollection>();
-            _measurementsBuffer = new MessageBuffer<P1Measurements>();
-            var messageParser = new MessageParser(_measurementsBuffer);
-
-            _serialMessageBuffer.RegisterMessageHandler(messageParser.ParseSerialMessages);
-
+            var services = new ServiceCollection();
             var commandLineApplication = new CommandLineApplication(throwOnUnexpectedArg: false);
 
             commandLineApplication.HelpOption("-? | -h | --help");
 
-            commandLineApplication.Command("influxdb", InfluxDbApplication(p1Config));
-            commandLineApplication.Command("mysqldb", MysqlDbApplication(p1Config, config["MysqlConnection"]));
-            commandLineApplication.Command("sqlite", SqliteApplication(p1Config, config.GetSection("SqliteFactorySettings")));
-            commandLineApplication.Command("debug", DebugApplication(p1Config));
+            program.ConfigureServices(services, commandLineApplication);
 
             commandLineApplication.OnExecute(() =>
             {
@@ -293,15 +134,14 @@ namespace P1ReaderApp
                 return 1;
             });
 
-            try
+            if (commandLineApplication.Execute(args) != 0)
             {
-                commandLineApplication.Execute(args);
+                return;
             }
-            catch (Exception exc)
-            {
-                Log.Fatal(exc, "Fatal exception during application execute");
-                throw;
-            }
+
+            using var serviceProvider = services.BuildServiceProvider();
+
+            await program.Run(serviceProvider);
         }
 
         private static async Task<int> WaitForCancellation()

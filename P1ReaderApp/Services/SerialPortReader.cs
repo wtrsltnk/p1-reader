@@ -1,4 +1,5 @@
-﻿using P1ReaderApp.Model;
+﻿using Microsoft.Extensions.Configuration;
+using P1ReaderApp.Model;
 using Serilog;
 using System;
 using System.Collections.Generic;
@@ -17,19 +18,19 @@ namespace P1ReaderApp.Services
         private bool _disposedValue = false;
 
         public SerialPortReader(
-            string portName,
-            int baudrate,
-            int stopBits,
-            int parity,
-            int dataBits,
+            IConfiguration config,
             IMessageBuffer<P1MessageCollection> messageBufferService)
         {
-            _serialPort = new SerialPort(portName, baudrate)
+            var p1Config = new P1Config();
+
+            config.GetSection("P1Config").Bind(p1Config);
+
+            _serialPort = new SerialPort(p1Config.Port, p1Config.BaudRate)
             {
                 ReadTimeout = 20_000,
-                Parity = (Parity)parity,
-                DataBits = dataBits,
-                StopBits = (StopBits)stopBits
+                Parity = (Parity)p1Config.Parity,
+                DataBits = p1Config.DataBits,
+                StopBits = (StopBits)p1Config.StopBits
             };
 
             _messageBuffer = messageBufferService;
@@ -128,13 +129,14 @@ namespace P1ReaderApp.Services
                     }
                 }
 
-                await _messageBuffer.QueueMessage(new P1MessageCollection
-                {
-                    Messages = messages,
-                    ReceivedUtc = DateTime.UtcNow,
-                }, cancellationToken);
+                await _messageBuffer
+                    .QueueMessage(new P1MessageCollection
+                    {
+                        Messages = messages,
+                        ReceivedUtc = DateTime.UtcNow,
+                    }, cancellationToken);
 
-                if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+                if (Log.IsEnabled(Serilog.Events.LogEventLevel.Verbose))
                 {
                     foreach (var message in messages)
                     {

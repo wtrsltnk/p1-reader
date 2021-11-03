@@ -9,13 +9,14 @@ using System.Threading.Tasks;
 
 namespace P1ReaderApp.Storage
 {
-    public class SqLiteStorage : IStorage
+    public class SqLiteStorage :
+        IStorage
     {
-        private readonly Func<DateTime, Task<SqliteConnection>> _connectionFactory;
+        private readonly IConnectionFactory<SqliteConnection> _connectionFactory;
         private readonly AsyncRetryPolicy _retryPolicy;
 
         public SqLiteStorage(
-            Func<DateTime, Task<SqliteConnection>> connectionFactory)
+            IConnectionFactory<SqliteConnection> connectionFactory)
         {
             _connectionFactory = connectionFactory;
 
@@ -35,7 +36,7 @@ namespace P1ReaderApp.Storage
         public async Task SaveP1Measurement(
             P1Measurements p1Measurements)
         {
-            var conn = await _connectionFactory(p1Measurements.TimeStamp);
+            var conn = await _connectionFactory.Create(p1Measurements.TimeStamp);
 
             if (conn == null)
             {

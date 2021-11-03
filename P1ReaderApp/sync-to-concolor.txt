@@ -1,0 +1,5 @@
+# use set "PATH=C:\Program Files (x86)\WinSCP;%PATH%"
+
+open "raspberrypi"
+synchronize remote -delete "C:\Code\dotnet\p1-reader-github\P1ReaderApp\bin\release\net5.0\linux-arm\publish" "/home/pi/apps/home/bin"
+exit

@@ -1,15 +1,17 @@
 ﻿using P1ReaderApp.Model;
+using P1ReaderApp.Storage;
 using System;
 using System.Threading.Tasks;
 
 namespace P1ReaderApp.Services
 {
-    public class ConsoleStatusPrintService : IStatusPrintService
+    public class ConsoleStatusPrintService :
+        IStorage
     {
         private P1Measurements _lastMeasurements;
         private P1MessageCollection _lastMessage;
 
-        public Task UpdateP1Measurements(P1Measurements measurements)
+        public Task SaveP1Measurement(P1Measurements measurements)
         {
             _lastMeasurements = measurements;
             Redraw();

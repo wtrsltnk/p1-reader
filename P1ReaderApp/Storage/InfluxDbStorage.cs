@@ -1,13 +1,14 @@
-﻿using P1ReaderApp.Model;
-using Serilog;
-using System.Threading.Tasks;
-using InfluxDB.LineProtocol.Client;
+﻿using InfluxDB.LineProtocol.Client;
 using InfluxDB.LineProtocol.Payload;
+using Microsoft.Extensions.Configuration;
+using P1ReaderApp.Exceptions;
+using P1ReaderApp.Model;
+using Polly;
+using Polly.Retry;
+using Serilog;
 using System;
 using System.Collections.Generic;
-using Polly.Retry;
-using Polly;
-using P1ReaderApp.Exceptions;
+using System.Threading.Tasks;
 
 namespace P1ReaderApp.Storage
 {
@@ -16,8 +17,21 @@ namespace P1ReaderApp.Storage
         private readonly LineProtocolClient _client;
         private readonly AsyncRetryPolicy _retryPolicy;
 
-        public InfluxDbStorage(string serverAddress, string database, string username, string password)
+        public InfluxDbStorage(
+            IConfiguration config)
         {
+            var section = config.GetSection("InfluxdbSettings");
+
+            if (section == null)
+            {
+                throw new ArgumentException("Config does not contain mandatory section with name 'InfluxdbSettings'", nameof(config));
+            }
+
+            string serverAddress = section.GetValue<string>("ServerAddress");
+            string database = section.GetValue<string>("Database");
+            string username = section.GetValue<string>("Username");
+            string password = section.GetValue<string>("Password");
+
             _client = new LineProtocolClient(new Uri(serverAddress), database, username, password);
 
             _retryPolicy = Policy
