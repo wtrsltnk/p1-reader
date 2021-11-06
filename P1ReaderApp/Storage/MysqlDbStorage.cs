@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using P1ReaderApp.Exceptions;
+using P1ReaderApp.Interfaces;
 using P1ReaderApp.Model;
 using Polly;
 using Polly.Retry;
@@ -10,7 +11,8 @@ using System.Threading.Tasks;
 
 namespace P1ReaderApp.Storage
 {
-    public class MysqlDbStorage : IStorage
+    public class MysqlDbStorage :
+        IStorage
     {
         private readonly MySqlConnection _connection;
         private readonly AsyncRetryPolicy _retryPolicy;
@@ -39,7 +41,7 @@ namespace P1ReaderApp.Storage
             Log.Verbose("Saving P1 measurement ({timestamp}) to MysqlDB {@measurements}", p1Measurements.TimeStamp, p1Measurements);
 
             var command = _connection.CreateCommand();
-            
+
             command.CommandType = System.Data.CommandType.Text;
             command.CommandText = InsertQuery;
 

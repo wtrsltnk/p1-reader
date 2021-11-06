@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration;
+using P1ReaderApp.Interfaces;
 using P1ReaderApp.Model;
 using Serilog;
 using System;

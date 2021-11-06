@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace P1ReaderApp.Storage
+namespace P1Reader.Infra.Sqlite.Interfaces
 {
     public interface IConnectionFactory<TConnection>
     {
         Task<TConnection> Create(
-            DateTime timestamp);
+            DateTime timestamp,
+            string initQuery);
     }
 }

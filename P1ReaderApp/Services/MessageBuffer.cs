@@ -1,4 +1,5 @@
-﻿using System;
+﻿using P1ReaderApp.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -6,12 +7,12 @@ using System.Threading.Tasks.Dataflow;
 
 namespace P1ReaderApp.Services
 {
-    public class MessageBuffer<TMessage> : 
+    public class MessageBuffer<TMessage> :
         IMessageBuffer<TMessage>
     {
-        private readonly BufferBlock<TMessage> _buffer = new BufferBlock<TMessage>();
+        private readonly BufferBlock<TMessage> _buffer = new();
 
-        private readonly List<Func<TMessage, Task>> _messageHandlers = new List<Func<TMessage, Task>>();
+        private readonly List<Func<TMessage, Task>> _messageHandlers = new();
 
         public MessageBuffer()
         {

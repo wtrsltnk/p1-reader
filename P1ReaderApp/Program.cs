@@ -2,14 +2,22 @@
 using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using P1Reader.Infra.Sqlite.Factories;
+using P1Reader.Infra.Sqlite.Interfaces;
+using P1Reader.Infra.Sqlite.Services;
+using P1ReaderApp.Interfaces;
 using P1ReaderApp.Model;
 using P1ReaderApp.Services;
 using P1ReaderApp.Storage;
+using P1Report.Infra.Pdf.Interfaces;
+using P1Report.Infra.Pdf.Services;
 using Serilog;
 using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using WkHtmlToPdfDotNet;
+using WkHtmlToPdfDotNet.Contracts;
 
 namespace P1ReaderApp
 {
@@ -29,10 +37,13 @@ namespace P1ReaderApp
         {
             services.AddScoped(s => Configuration);
 
+            services.AddScoped<ILogger>(sp => Log.Logger);
             services.AddScoped<IMessageBuffer<P1MessageCollection>, MessageBuffer<P1MessageCollection>>();
             services.AddScoped<IMessageBuffer<P1Measurements>, MessageBuffer<P1Measurements>>();
             services.AddScoped<MessageParser>();
             services.AddScoped<SerialPortReader>();
+            services.AddScoped<IReportBuilder<FileInfo>, DayReportBuilderService>();
+            services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
 
             commandLineApplication.Command("sqlite", target =>
             {
@@ -43,6 +54,7 @@ namespace P1ReaderApp
                 {
                     services.AddScoped<IConnectionFactory<SqliteConnection>, SqliteConnectionFactory>();
                     services.AddScoped<IStorage, SqLiteStorage>();
+                    services.AddScoped<ITrigger<FileInfo>, OnSqliteDbRepotationTrigger>();
 
                     return 0;
                 });
@@ -60,22 +72,9 @@ namespace P1ReaderApp
                     return 0;
                 });
             });
-
-            commandLineApplication.Command("influxdb", target =>
-            {
-                target.Description = "Write to influxdb";
-                target.HelpOption("-? | -h | --help");
-
-                target.OnExecute(() =>
-                {
-                    services.AddScoped<IStorage, InfluxDbStorage>();
-
-                    return 0;
-                });
-            });
         }
 
-        public async Task Run(
+        public static async Task Run(
             IServiceProvider serviceProvider)
         {
             try
@@ -90,6 +89,26 @@ namespace P1ReaderApp
                 var measurementsBuffer = serviceProvider.GetService<IMessageBuffer<P1Measurements>>();
                 var messageParser = serviceProvider.GetService<MessageParser>();
                 var storage = serviceProvider.GetService<IStorage>();
+
+                var reportTrigger = serviceProvider.GetService<ITrigger<FileInfo>>();
+
+                if (reportTrigger != null)
+                {
+                    reportTrigger.Trigger += (fi) =>
+                    {
+                        try
+                        {
+                            var dayReportBuilder = serviceProvider
+                                .GetService<IReportBuilder<FileInfo>>();
+
+                            dayReportBuilder.BuildReport(fi);
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex.Message);
+                        }
+                    };
+                }
 
                 serialMessageBuffer.RegisterMessageHandler(messageParser.ParseSerialMessages);
                 measurementsBuffer.RegisterMessageHandler(storage.SaveP1Measurement);
@@ -141,7 +160,7 @@ namespace P1ReaderApp
 
             using var serviceProvider = services.BuildServiceProvider();
 
-            await program.Run(serviceProvider);
+            await Run(serviceProvider);
         }
 
         private static async Task<int> WaitForCancellation()

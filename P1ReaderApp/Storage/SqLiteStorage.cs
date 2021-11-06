@@ -1,5 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
+using P1Reader.Infra.Sqlite.Interfaces;
 using P1ReaderApp.Exceptions;
+using P1ReaderApp.Interfaces;
 using P1ReaderApp.Model;
 using Polly;
 using Polly.Retry;
@@ -13,12 +15,15 @@ namespace P1ReaderApp.Storage
         IStorage
     {
         private readonly IConnectionFactory<SqliteConnection> _connectionFactory;
+        private readonly ILogger _logger;
         private readonly AsyncRetryPolicy _retryPolicy;
 
         public SqLiteStorage(
-            IConnectionFactory<SqliteConnection> connectionFactory)
+            IConnectionFactory<SqliteConnection> connectionFactory,
+            ILogger logger)
         {
             _connectionFactory = connectionFactory;
+            _logger = logger;
 
             _retryPolicy = Policy
                 .Handle<Exception>()
@@ -36,7 +41,7 @@ namespace P1ReaderApp.Storage
         public async Task SaveP1Measurement(
             P1Measurements p1Measurements)
         {
-            var conn = await _connectionFactory.Create(p1Measurements.TimeStamp);
+            var conn = await _connectionFactory.Create(p1Measurements.TimeStamp, CreateTableQuery);
 
             if (conn == null)
             {
@@ -80,7 +85,7 @@ namespace P1ReaderApp.Storage
                     throw new StorageWriteException($"Error writing to sqlite: {result} rows affected");
                 }
 
-                Log.Verbose("Saving P1 measurement to Sqlite was succesfull");
+                _logger.Verbose("Saving P1 measurement to Sqlite was succesfull");
             });
         }
 

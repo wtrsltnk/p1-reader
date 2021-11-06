@@ -1,7 +1,7 @@
 ﻿using P1ReaderApp.Model;
 using System.Threading.Tasks;
 
-namespace P1ReaderApp.Services
+namespace P1ReaderApp.Interfaces
 {
     public interface IMessageParser
     {

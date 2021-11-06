@@ -1,5 +1,6 @@
 ﻿using P1ReaderApp.Attributes;
 using P1ReaderApp.Exceptions;
+using P1ReaderApp.Interfaces;
 using P1ReaderApp.Model;
 using Serilog;
 using System;
