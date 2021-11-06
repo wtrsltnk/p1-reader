@@ -85,6 +85,7 @@ namespace P1ReaderApp.Storage
             string archiveDbPath)
         {
             var dataSourceFileInfo = new FileInfo(_currentConnection.DataSource);
+            var dataTargetFileInfo = new FileInfo(Path.Combine(archiveDbPath, dataSourceFileInfo.Name));
 
             Log.Information("Rotating {dataSourceFileInfo} to archive @ {archiveDbPath}", dataSourceFileInfo, archiveDbPath);
 
@@ -92,7 +93,7 @@ namespace P1ReaderApp.Storage
 
             try
             {
-                File.Move(dataSourceFileInfo.FullName, Path.Combine(archiveDbPath, dataSourceFileInfo.Name));
+                File.Move(dataSourceFileInfo.FullName, dataTargetFileInfo.FullName);
             }
             catch (Exception ex)
             {

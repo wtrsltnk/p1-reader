@@ -9,7 +9,8 @@ using System.Threading.Tasks;
 
 namespace P1ReaderApp.Services
 {
-    public class SerialPortReader : IDisposable
+    public class SerialPortReader :
+        IDisposable
     {
         private readonly IMessageBuffer<P1MessageCollection> _messageBuffer;
         private readonly SerialPort _serialPort;
@@ -79,7 +80,8 @@ namespace P1ReaderApp.Services
             }
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected virtual void Dispose(
+            bool disposing)
         {
             if (!_disposedValue)
             {
@@ -93,7 +95,8 @@ namespace P1ReaderApp.Services
             }
         }
 
-        private void CreateReadTask(CancellationToken cancellationToken)
+        private void CreateReadTask(
+            CancellationToken cancellationToken)
         {
             Task.Run(async () =>
             {
@@ -111,7 +114,8 @@ namespace P1ReaderApp.Services
             }, cancellationToken);
         }
 
-        private async Task Read(CancellationToken cancellationToken)
+        private async Task Read(
+            CancellationToken cancellationToken)
         {
             try
             {

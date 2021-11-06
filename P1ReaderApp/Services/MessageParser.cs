@@ -12,18 +12,21 @@ using System.Threading.Tasks;
 
 namespace P1ReaderApp.Services
 {
-    public class MessageParser : IMessageParser
+    public class MessageParser :
+        IMessageParser
     {
         private readonly IMessageBuffer<P1Measurements> _measurementsBuffer;
         private IDictionary<string, OBISField> _fields;
 
-        public MessageParser(IMessageBuffer<P1Measurements> measurementsBuffer)
+        public MessageParser(
+            IMessageBuffer<P1Measurements> measurementsBuffer)
         {
             _measurementsBuffer = measurementsBuffer;
             CreateFieldDictionary();
         }
 
-        public async Task<P1Measurements> ParseSerialMessages(P1MessageCollection messageCollection)
+        public async Task<P1Measurements> ParseSerialMessages(
+            P1MessageCollection messageCollection)
         {
             P1Measurements measurements = null;
             try
@@ -88,7 +91,9 @@ namespace P1ReaderApp.Services
             }
         }
 
-        private decimal GetDecimalField(string fieldName, List<string> messages)
+        private decimal GetDecimalField(
+            string fieldName,
+            List<string> messages)
         {
             var (_, fieldValue) = GetField(fieldName, messages);
             try
@@ -102,7 +107,9 @@ namespace P1ReaderApp.Services
             }
         }
 
-        private (OBISField, string) GetField(string fieldName, List<string> messages)
+        private (OBISField, string) GetField(
+            string fieldName,
+            List<string> messages)
         {
             var obisField = _fields[fieldName];
 
@@ -124,7 +131,9 @@ namespace P1ReaderApp.Services
             return (obisField, string.Empty);
         }
 
-        private int GetIntegerField(string fieldName, List<string> messages)
+        private int GetIntegerField(
+            string fieldName,
+            List<string> messages)
         {
             var (_, fieldValue) = GetField(fieldName, messages);
 
@@ -139,7 +148,9 @@ namespace P1ReaderApp.Services
             }
         }
 
-        private string GetStringField(string fieldName, List<string> messages)
+        private string GetStringField(
+            string fieldName,
+            List<string> messages)
         {
             var (_, fieldValue) = GetField(fieldName, messages);
 

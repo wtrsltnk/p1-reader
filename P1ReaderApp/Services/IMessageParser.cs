@@ -5,6 +5,7 @@ namespace P1ReaderApp.Services
 {
     public interface IMessageParser
     {
-        Task<P1Measurements> ParseSerialMessages(P1MessageCollection messageCollection);
+        Task<P1Measurements> ParseSerialMessages(
+            P1MessageCollection messageCollection);
     }
 }

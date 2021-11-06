@@ -4,10 +4,13 @@ using System.Threading.Tasks;
 
 namespace P1ReaderApp.Services
 {
-    public interface IMessageBuffer<T>
+    public interface IMessageBuffer<TMessage>
     {
-        Task QueueMessage(T message, CancellationToken cancellationToken);
+        Task QueueMessage(
+            TMessage message, 
+            CancellationToken cancellationToken);
 
-        void RegisterMessageHandler(Func<T, Task> action);
+        void RegisterMessageHandler(
+            Func<TMessage, Task> action);
     }
 }

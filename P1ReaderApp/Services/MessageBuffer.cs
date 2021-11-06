@@ -6,11 +6,12 @@ using System.Threading.Tasks.Dataflow;
 
 namespace P1ReaderApp.Services
 {
-    public class MessageBuffer<T> : IMessageBuffer<T>
+    public class MessageBuffer<TMessage> : 
+        IMessageBuffer<TMessage>
     {
-        private readonly BufferBlock<T> _buffer = new BufferBlock<T>();
+        private readonly BufferBlock<TMessage> _buffer = new BufferBlock<TMessage>();
 
-        private readonly List<Func<T, Task>> _messageHandlers = new List<Func<T, Task>>();
+        private readonly List<Func<TMessage, Task>> _messageHandlers = new List<Func<TMessage, Task>>();
 
         public MessageBuffer()
         {
@@ -28,12 +29,14 @@ namespace P1ReaderApp.Services
             });
         }
 
-        public async Task QueueMessage(T message, CancellationToken cancellationToken)
+        public async Task QueueMessage(
+            TMessage message,
+            CancellationToken cancellationToken)
         {
             await _buffer.SendAsync(message, cancellationToken);
         }
 
-        public void RegisterMessageHandler(Func<T, Task> action)
+        public void RegisterMessageHandler(Func<TMessage, Task> action)
         {
             _messageHandlers.Add(action);
         }
