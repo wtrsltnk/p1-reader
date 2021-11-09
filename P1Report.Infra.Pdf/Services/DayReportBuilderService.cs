@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using P1Report.Infra.Pdf.Interfaces;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,14 +19,17 @@ namespace P1Report.Infra.Pdf.Services
     {
         private readonly Regex _dateRegex = new Regex(@"^(?<Year>[0-9]{4})(?<Month>[0-9]{2})(?<Day>[0-9]{2})");
         private readonly IConverter _converter;
+        private readonly ILogger _logger;
 
         public string ReportOutputPath { get; set; }
 
         public DayReportBuilderService(
             IConfiguration config,
-            IConverter converter)
+            IConverter converter,
+            ILogger logger)
         {
             _converter = converter;
+            _logger = logger;
 
             ReportOutputPath = config.GetValue<string>("ReportOutputPath");
         }
@@ -33,15 +37,21 @@ namespace P1Report.Infra.Pdf.Services
         public async Task BuildReport(
             FileInfo dataSourceFile)
         {
+            _logger.Debug("Building report for data soruce file {dataSourceFile}", dataSourceFile);
+
             if (!dataSourceFile.Exists)
             {
-                throw new ArgumentException("Data source file does not exist", nameof(dataSourceFile));
+                _logger.Error("Data source file does not exist");
+
+                return;
             }
 
             var match = _dateRegex.Match(dataSourceFile.Name);
             if (!match.Success)
             {
-                throw new ArgumentException("Data source file filename does not start with a date. The first 8 characters should mark a date. example: '20211101-p1power.db'", nameof(dataSourceFile));
+                _logger.Error("Data source file filename does not start with a date. The first 8 characters should mark a date. example: '20211101-p1power.db'");
+
+                return;
             }
 
             int year = int.Parse(match.Groups["Year"].Value);
@@ -51,11 +61,16 @@ namespace P1Report.Infra.Pdf.Services
 
             using (var connection = new SqliteConnection($"Data Source={dataSourceFile.FullName}"))
             {
+                _logger.Debug("Connecting to data source file {dataSourceFile}", dataSourceFile);
 
                 await connection.OpenAsync();
 
+                _logger.Debug("Getting data");
+
                 var electricityNumbersPerHourData = GetElectricityNumbers(baseDate, connection);
                 var electricityNumbersAllDayData = GetNumbersBetween(connection, baseDate, baseDate.AddDays(1), day);
+
+                _logger.Debug("Creating graph");
 
                 var graphData = CreateGraph(
                     $"Uur van de dag",
@@ -81,25 +96,33 @@ namespace P1Report.Infra.Pdf.Services
                 var doc = new HtmlToPdfDocument()
                 {
                     GlobalSettings =
-                {
-                    ColorMode = ColorMode.Color,
-                    Orientation = Orientation.Portrait,
-                    PaperSize = PaperKind.A4Plus,
-                },
-                    Objects =
-                {
-                    new ObjectSettings()
                     {
-                        PagesCount = true,
-                        HtmlContent = sb.ToString(),
-                        WebSettings = { DefaultEncoding = "utf-8" },
+                        ColorMode = ColorMode.Color,
+                        Orientation = Orientation.Portrait,
+                        PaperSize = PaperKind.A4Plus,
+                    },
+                    Objects =
+                    {
+                        new ObjectSettings()
+                        {
+                            PagesCount = true,
+                            HtmlContent = sb.ToString(),
+                            WebSettings = { DefaultEncoding = "utf-8" },
+                        }
                     }
-                }
                 };
+
+                _logger.Debug("Convert to pdf");
 
                 byte[] pdf = _converter.Convert(doc);
 
-                File.WriteAllBytes(Path.Combine(ReportOutputPath, dataSourceFile.Name.Replace(dataSourceFile.Extension, ".pdf")), pdf);
+                var outputFile = Path.Combine(ReportOutputPath, dataSourceFile.Name.Replace(dataSourceFile.Extension, ".pdf"));
+
+                _logger.Debug($"Wrinting pdf data to {outputFile}");
+
+                File.WriteAllBytes(outputFile, pdf);
+
+                _logger.Debug("Done building report");
             }
         }
 

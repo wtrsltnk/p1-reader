@@ -1,4 +1,5 @@
 using FluentAssertions;
+using P1Reader.Domain.P1;
 using P1ReaderApp.Model;
 using P1ReaderApp.Services;
 using System;
@@ -14,8 +15,8 @@ namespace P1ReaderApp.Tests
         {
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
-            var messageBuffer = new MessageBuffer<P1Measurements>();
-            var parser = new MessageParser(messageBuffer);
+            var messageBuffer = new MessageBuffer<Measurement>();
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection
@@ -51,7 +52,7 @@ namespace P1ReaderApp.Tests
             measurements.PowerFailuresInAnyPhase.Should().Be(8);
             measurements.Tariff.Should().Be(2);
             measurements.TimeStamp.Should().Be(expectedTimestamp);
-            measurements.TotalInstantaneousCurrent.Should().Be(1+2+3);
+            measurements.TotalInstantaneousCurrent.Should().Be(1 + 2 + 3);
             measurements.TotalInstantaneousVoltage.Should().Be(229.0M + 226.0M + 229.0M);
             measurements.Version.Should().Be("50");
         }
@@ -61,8 +62,8 @@ namespace P1ReaderApp.Tests
         {
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
-            var messageBuffer = new MessageBuffer<P1Measurements>();
-            var parser = new MessageParser(messageBuffer);
+            var messageBuffer = new MessageBuffer<Measurement>();
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection
@@ -108,8 +109,8 @@ namespace P1ReaderApp.Tests
         {
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
-            var messageBuffer = new MessageBuffer<P1Measurements>();
-            var parser = new MessageParser(messageBuffer);
+            var messageBuffer = new MessageBuffer<Measurement>();
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection
@@ -145,7 +146,7 @@ namespace P1ReaderApp.Tests
             measurements.PowerFailuresInAnyPhase.Should().Be(13);
             measurements.Tariff.Should().Be(2);
             measurements.TimeStamp.Should().Be(expectedTimestamp);
-            measurements.TotalInstantaneousCurrent.Should().Be(3+4+2);
+            measurements.TotalInstantaneousCurrent.Should().Be(3 + 4 + 2);
             measurements.TotalInstantaneousVoltage.Should().Be(0);
             measurements.Version.Should().Be("42");
         }
@@ -155,8 +156,8 @@ namespace P1ReaderApp.Tests
         {
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
-            var messageBuffer = new MessageBuffer<P1Measurements>();
-            var parser = new MessageParser(messageBuffer);
+            var messageBuffer = new MessageBuffer<Measurement>();
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection
@@ -192,8 +193,8 @@ namespace P1ReaderApp.Tests
             measurements.PowerFailuresInAnyPhase.Should().Be(6);
             measurements.Tariff.Should().Be(2);
             measurements.TimeStamp.Should().Be(expectedTimestamp);
-            measurements.TotalInstantaneousCurrent.Should().Be(2+5+9);
-            measurements.TotalInstantaneousVoltage.Should().Be(236.0M+232.6M+235.1M);
+            measurements.TotalInstantaneousCurrent.Should().Be(2 + 5 + 9);
+            measurements.TotalInstantaneousVoltage.Should().Be(236.0M + 232.6M + 235.1M);
             measurements.Version.Should().Be("50");
         }
 
@@ -202,8 +203,8 @@ namespace P1ReaderApp.Tests
         {
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
-            var messageBuffer = new MessageBuffer<P1Measurements>();
-            var parser = new MessageParser(messageBuffer);
+            var messageBuffer = new MessageBuffer<Measurement>();
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection
@@ -249,8 +250,8 @@ namespace P1ReaderApp.Tests
         {
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
-            var messageBuffer = new MessageBuffer<P1Measurements>();
-            var parser = new MessageParser(messageBuffer);
+            var messageBuffer = new MessageBuffer<Measurement>();
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection

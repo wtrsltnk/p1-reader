@@ -2,6 +2,9 @@
 using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using P1Reader.Domain.Interface;
+using P1Reader.Domain.Interfaces;
+using P1Reader.Domain.P1;
 using P1Reader.Infra.Sqlite.Factories;
 using P1Reader.Infra.Sqlite.Interfaces;
 using P1Reader.Infra.Sqlite.Services;
@@ -37,10 +40,11 @@ namespace P1ReaderApp
         {
             services.AddScoped(s => Configuration);
 
-            services.AddScoped<ILogger>(sp => Log.Logger);
+            services.AddScoped(sp => Log.Logger);
             services.AddScoped<IMessageBuffer<P1MessageCollection>, MessageBuffer<P1MessageCollection>>();
-            services.AddScoped<IMessageBuffer<P1Measurements>, MessageBuffer<P1Measurements>>();
+            services.AddScoped<IMessageBuffer<Measurement>, MessageBuffer<Measurement>>();
             services.AddScoped<MessageParser>();
+            services.AddScoped<IMapper<P1Measurements, Measurement>, P1MeasurementsMapper>();
             services.AddScoped<SerialPortReader>();
             services.AddScoped<IReportBuilder<FileInfo>, DayReportBuilderService>();
             services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
@@ -79,21 +83,32 @@ namespace P1ReaderApp
         {
             try
             {
-                var config = serviceProvider.GetService<IConfiguration>();
+                var config = serviceProvider
+                    .GetService<IConfiguration>();
 
                 Log.Logger = new LoggerConfiguration()
                     .ReadFrom.Configuration(config)
                     .CreateLogger();
 
-                var serialMessageBuffer = serviceProvider.GetService<IMessageBuffer<P1MessageCollection>>();
-                var measurementsBuffer = serviceProvider.GetService<IMessageBuffer<P1Measurements>>();
-                var messageParser = serviceProvider.GetService<MessageParser>();
-                var storage = serviceProvider.GetService<IStorage>();
+                var serialMessageBuffer = serviceProvider
+                    .GetService<IMessageBuffer<P1MessageCollection>>();
 
-                var reportTrigger = serviceProvider.GetService<ITrigger<FileInfo>>();
+                var measurementsBuffer = serviceProvider
+                    .GetService<IMessageBuffer<Measurement>>();
+
+                var messageParser = serviceProvider
+                    .GetService<MessageParser>();
+
+                var storage = serviceProvider
+                    .GetService<IStorage>();
+
+                var reportTrigger = serviceProvider
+                    .GetService<ITrigger<FileInfo>>();
 
                 if (reportTrigger != null)
                 {
+                    Log.Logger.Information("Found trigger on db rotation");
+
                     reportTrigger.Trigger += (fi) =>
                     {
                         try
@@ -109,13 +124,22 @@ namespace P1ReaderApp
                         }
                     };
                 }
+                else
+                {
+                    Log.Logger.Information("Could not find trigger on db rotation");
+                }
 
-                serialMessageBuffer.RegisterMessageHandler(messageParser.ParseSerialMessages);
-                measurementsBuffer.RegisterMessageHandler(storage.SaveP1Measurement);
+                serialMessageBuffer
+                    .RegisterMessageHandler(messageParser.ParseSerialMessages);
 
-                var serialPortReader = serviceProvider.GetService<SerialPortReader>();
+                measurementsBuffer
+                    .RegisterMessageHandler(storage.SaveP1MeasurementAsync);
 
-                serialPortReader.StartReading();
+                var serialPortReader = serviceProvider
+                    .GetService<SerialPortReader>();
+
+                serialPortReader
+                    .StartReading();
 
                 Console.ReadLine();
 
@@ -142,23 +166,27 @@ namespace P1ReaderApp
             var services = new ServiceCollection();
             var commandLineApplication = new CommandLineApplication(throwOnUnexpectedArg: false);
 
-            commandLineApplication.HelpOption("-? | -h | --help");
+            commandLineApplication
+                .HelpOption("-? | -h | --help");
 
-            program.ConfigureServices(services, commandLineApplication);
+            program
+                .ConfigureServices(services, commandLineApplication);
 
-            commandLineApplication.OnExecute(() =>
-            {
-                commandLineApplication.ShowHelp();
+            commandLineApplication
+                .OnExecute(() =>
+                {
+                    commandLineApplication.ShowHelp();
 
-                return 1;
-            });
+                    return 1;
+                });
 
             if (commandLineApplication.Execute(args) != 0)
             {
                 return;
             }
 
-            using var serviceProvider = services.BuildServiceProvider();
+            using var serviceProvider = services
+                .BuildServiceProvider();
 
             await Run(serviceProvider);
         }

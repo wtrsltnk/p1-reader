@@ -1,4 +1,7 @@
-# use set "PATH=C:\Program Files (x86)\WinSCP;%PATH%"
+# use:
+#       set "PATH=C:\Program Files (x86)\WinSCP;%PATH%"
+# then
+#       dotnet publish -c release -r linux-arm && winscp /script=sync-to-concolor.txt
 
 open "raspberrypi"
 synchronize remote -delete "C:\Code\dotnet\p1-reader-github\P1ReaderApp\bin\release\net5.0\linux-arm\publish" "/home/pi/apps/home/bin"

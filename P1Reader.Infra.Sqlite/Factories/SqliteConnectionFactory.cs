@@ -39,7 +39,7 @@ namespace P1Reader.Infra.Sqlite.Factories
 
             var diffDays = (timestamp.Date - _lastTimeStamp.Value.Date).TotalDays;
 
-            Log.Debug("A sqlite connection requested with diffDays={diffDays}", diffDays);
+            Log.Verbose("A sqlite connection requested with diffDays={diffDays}", diffDays);
 
             if (diffDays < 0)
             {
@@ -89,7 +89,7 @@ namespace P1Reader.Infra.Sqlite.Factories
             }
             catch (Exception ex)
             {
-                _logger.Fatal(ex, "Unexpected exception during rotation of sqlite connection {dataSourceFileInfo}", dataSourceFileInfo);
+                _logger.Error(ex, "Unexpected exception during rotation of sqlite connection {dataSourceFileInfo}", dataSourceFileInfo);
             }
         }
 

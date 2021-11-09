@@ -1,4 +1,6 @@
-﻿using P1ReaderApp.Attributes;
+﻿using P1Reader.Domain.Interface;
+using P1Reader.Domain.P1;
+using P1ReaderApp.Attributes;
 using P1ReaderApp.Exceptions;
 using P1ReaderApp.Interfaces;
 using P1ReaderApp.Model;
@@ -16,13 +18,16 @@ namespace P1ReaderApp.Services
     public class MessageParser :
         IMessageParser
     {
-        private readonly IMessageBuffer<P1Measurements> _measurementsBuffer;
+        private readonly IMessageBuffer<Measurement> _measurementsBuffer;
+        private readonly IMapper<P1Measurements, Measurement> _measurementMapper;
         private IDictionary<string, OBISField> _fields;
 
         public MessageParser(
-            IMessageBuffer<P1Measurements> measurementsBuffer)
+            IMessageBuffer<Measurement> measurementsBuffer,
+            IMapper<P1Measurements, Measurement> measurementMapper)
         {
             _measurementsBuffer = measurementsBuffer;
+            _measurementMapper = measurementMapper;
             CreateFieldDictionary();
         }
 
@@ -64,7 +69,7 @@ namespace P1ReaderApp.Services
                     Version = GetStringField(nameof(P1Measurements.Version), messages)
                 };
 
-                await _measurementsBuffer.QueueMessage(measurements, CancellationToken.None);
+                await _measurementsBuffer.QueueMessage(_measurementMapper.Map(measurements), CancellationToken.None);
             }
             catch (Exception exception)
             {

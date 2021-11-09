@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using P1Report.Infra.Pdf.Services;
-using System;
+using Serilog;
 using System.IO;
 using System.Threading.Tasks;
 using WkHtmlToPdfDotNet;
@@ -17,14 +17,19 @@ namespace P1ReportApp
                 .AddJsonFile("appsettings.json", optional: false)
                 .Build();
 
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(config)
+                .CreateLogger();
+
             foreach (var arg in args)
             {
-                Console.Write($"Building report for {arg}...");
-                var d = new DayReportBuilderService(config, new SynchronizedConverter(new PdfTools()));
+                Log.Logger.Information($"Building report for {arg}...");
+
+                var d = new DayReportBuilderService(config, new SynchronizedConverter(new PdfTools()), Log.Logger);
 
                 await d.BuildReport(new FileInfo(arg));
-                
-                Console.Write($"done!\n");
+
+                Log.Logger.Information($"done!\n");
             }
         }
     }
