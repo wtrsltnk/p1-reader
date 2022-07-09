@@ -21,6 +21,11 @@ namespace P1ReportApp
                 .ReadFrom.Configuration(config)
                 .CreateLogger();
 
+            args = new string[]
+            {
+                @"\\neofelis\yt-dl\slimmemeter\20220328-p1power.db",
+            };
+
             foreach (var arg in args)
             {
                 Log.Logger.Information($"Building report for {arg}...");

@@ -44,7 +44,7 @@ namespace P1Aggregator
                     command.CommandText = query;
 
                     using var reader = command.ExecuteReader();
-
+                    
                     while (reader.Read())
                     {
                         var measurement = new Measurement

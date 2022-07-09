@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29409.12
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32505.173
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "P1ReaderApp", "P1ReaderApp\P1ReaderApp.csproj", "{6736B535-F801-44A4-A862-2804B3F24D22}"
 EndProject
@@ -19,7 +19,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "P1Reader.Infra.Mysql", "P1R
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "P1Reader.Domain", "P1Reader.Domain\P1Reader.Domain.csproj", "{0CF99A9F-58E5-40DC-8A61-4373B5E1B363}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "P1Reader.Web", "P1Reader.Web\P1Reader.Web.csproj", "{80AFA970-DE7F-4270-AAB0-99F31856EA22}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{3B5E53DE-E520-40CE-8812-FC496AB3CD64}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "P1Reader.Infra.SignalR", "P1Reader.Infra.SignalR\P1Reader.Infra.SignalR.csproj", "{7F6ECBA0-8278-4F8A-9D7F-1CEC08B6CCE5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "P1LiveView", "P1LiveView\P1LiveView.csproj", "{C7309412-168D-4E1F-877B-DF797CB9BD68}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -59,10 +63,14 @@ Global
 		{0CF99A9F-58E5-40DC-8A61-4373B5E1B363}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CF99A9F-58E5-40DC-8A61-4373B5E1B363}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0CF99A9F-58E5-40DC-8A61-4373B5E1B363}.Release|Any CPU.Build.0 = Release|Any CPU
-		{80AFA970-DE7F-4270-AAB0-99F31856EA22}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{80AFA970-DE7F-4270-AAB0-99F31856EA22}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{80AFA970-DE7F-4270-AAB0-99F31856EA22}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{80AFA970-DE7F-4270-AAB0-99F31856EA22}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F6ECBA0-8278-4F8A-9D7F-1CEC08B6CCE5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F6ECBA0-8278-4F8A-9D7F-1CEC08B6CCE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F6ECBA0-8278-4F8A-9D7F-1CEC08B6CCE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F6ECBA0-8278-4F8A-9D7F-1CEC08B6CCE5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7309412-168D-4E1F-877B-DF797CB9BD68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7309412-168D-4E1F-877B-DF797CB9BD68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7309412-168D-4E1F-877B-DF797CB9BD68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7309412-168D-4E1F-877B-DF797CB9BD68}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

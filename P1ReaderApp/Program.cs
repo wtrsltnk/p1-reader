@@ -1,19 +1,13 @@
-﻿using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.CommandLineUtils;
+﻿using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using P1Reader.Domain.Interface;
 using P1Reader.Domain.Interfaces;
 using P1Reader.Domain.P1;
-using P1Reader.Infra.Sqlite.Factories;
-using P1Reader.Infra.Sqlite.Interfaces;
-using P1Reader.Infra.Sqlite.Services;
+using P1Reader.Infra.SignalR;
 using P1ReaderApp.Interfaces;
 using P1ReaderApp.Model;
 using P1ReaderApp.Services;
-using P1ReaderApp.Storage;
-using P1Report.Infra.Pdf.Interfaces;
-using P1Report.Infra.Pdf.Services;
 using Serilog;
 using System;
 using System.IO;
@@ -46,110 +40,33 @@ namespace P1ReaderApp
             services.AddScoped<MessageParser>();
             services.AddScoped<IMapper<P1Measurements, Measurement>, P1MeasurementsMapper>();
             services.AddScoped<SerialPortReader>();
-            services.AddScoped<IReportBuilder<FileInfo>, DayReportBuilderService>();
+
             services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
 
-            commandLineApplication.Command("sqlite", target =>
-            {
-                target.Description = "Write to sqlite";
-                target.HelpOption("-? | -h | --help");
-
-                target.OnExecute(() =>
+            commandLineApplication
+                .Command("signalr", command =>
                 {
-                    services.AddScoped<IConnectionFactory<SqliteConnection>, SqliteConnectionFactory>();
-                    services.AddScoped<IStorage, SqLiteStorage>();
-                    services.AddScoped<ITrigger<FileInfo>, OnSqliteDbRepotationTrigger>();
+                    var fakeRunOption = commandLineApplication.Option("--fake-run", "Use a fake serial port for data", CommandOptionType.NoValue);
 
-                    return 0;
-                });
-            });
+                    command.Description = "Write to signalr";
+                    command.HelpOption("-? | -h | --help");
 
-            commandLineApplication.Command("mysql", target =>
-            {
-                target.Description = "Write to mysql";
-                target.HelpOption("-? | -h | --help");
-
-                target.OnExecute(() =>
-                {
-                    services.AddScoped<IStorage, MysqlDbStorage>();
-
-                    return 0;
-                });
-            });
-        }
-
-        public static async Task Run(
-            IServiceProvider serviceProvider)
-        {
-            try
-            {
-                var config = serviceProvider
-                    .GetService<IConfiguration>();
-
-                Log.Logger = new LoggerConfiguration()
-                    .ReadFrom.Configuration(config)
-                    .CreateLogger();
-
-                var serialMessageBuffer = serviceProvider
-                    .GetService<IMessageBuffer<P1MessageCollection>>();
-
-                var measurementsBuffer = serviceProvider
-                    .GetService<IMessageBuffer<Measurement>>();
-
-                var messageParser = serviceProvider
-                    .GetService<MessageParser>();
-
-                var storage = serviceProvider
-                    .GetService<IStorage>();
-
-                var reportTrigger = serviceProvider
-                    .GetService<ITrigger<FileInfo>>();
-
-                if (reportTrigger != null)
-                {
-                    Log.Logger.Information("Found trigger on db rotation");
-
-                    reportTrigger.Trigger += (fi) =>
+                    command.OnExecute(() =>
                     {
-                        try
+                        if (!fakeRunOption.HasValue())
                         {
-                            var dayReportBuilder = serviceProvider
-                                .GetService<IReportBuilder<FileInfo>>();
-
-                            dayReportBuilder.BuildReport(fi);
+                            services.AddScoped<ISerialPort, SerialPortWrapper>();
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            Log.Error(ex.Message);
+                            services.AddScoped<ISerialPort, FakeSerialPort>();
                         }
-                    };
-                }
-                else
-                {
-                    Log.Logger.Information("Could not find trigger on db rotation");
-                }
 
-                serialMessageBuffer
-                    .RegisterMessageHandler(messageParser.ParseSerialMessages);
+                        services.AddScoped<IStorage, SignalRStorage>();
 
-                measurementsBuffer
-                    .RegisterMessageHandler(storage.SaveP1MeasurementAsync);
-
-                var serialPortReader = serviceProvider
-                    .GetService<SerialPortReader>();
-
-                serialPortReader
-                    .StartReading();
-
-                Console.ReadLine();
-
-                await WaitForCancellation();
-            }
-            catch (Exception exc)
-            {
-                Log.Fatal(exc, "Fatal exception during application execute");
-                throw;
-            }
+                        return 0;
+                    });
+                });
         }
 
 
@@ -189,6 +106,53 @@ namespace P1ReaderApp
                 .BuildServiceProvider();
 
             await Run(serviceProvider);
+        }
+
+        public static async Task Run(
+            IServiceProvider serviceProvider)
+        {
+            try
+            {
+                var config = serviceProvider
+                    .GetService<IConfiguration>();
+
+                Log.Logger = new LoggerConfiguration()
+                    .ReadFrom.Configuration(config)
+                    .CreateLogger();
+
+                var serialMessageBuffer = serviceProvider
+                    .GetService<IMessageBuffer<P1MessageCollection>>();
+
+                var measurementsBuffer = serviceProvider
+                    .GetService<IMessageBuffer<Measurement>>();
+
+                var messageParser = serviceProvider
+                    .GetService<MessageParser>();
+
+                var storage = serviceProvider
+                    .GetService<IStorage>();
+
+                serialMessageBuffer
+                    .RegisterMessageHandler(messageParser.ParseSerialMessages);
+
+                measurementsBuffer
+                    .RegisterMessageHandler(storage.SaveP1MeasurementAsync);
+
+                var serialPortReader = serviceProvider
+                    .GetService<SerialPortReader>();
+
+                serialPortReader
+                    .StartReading();
+
+                Console.ReadLine();
+
+                await WaitForCancellation();
+            }
+            catch (Exception exc)
+            {
+                Log.Fatal(exc, "Fatal exception during application execute");
+                throw;
+            }
         }
 
         private static async Task<int> WaitForCancellation()

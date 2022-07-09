@@ -46,18 +46,12 @@ namespace P1Report.Infra.Pdf.Services
                 return;
             }
 
-            var match = _dateRegex.Match(dataSourceFile.Name);
-            if (!match.Success)
-            {
-                _logger.Error("Data source file filename does not start with a date. The first 8 characters should mark a date. example: '20211101-p1power.db'");
+            var baseDate = ExtractDateFromFileName(dataSourceFile.Name);
 
+            if (!baseDate.HasValue)
+            {
                 return;
             }
-
-            int year = int.Parse(match.Groups["Year"].Value);
-            int month = int.Parse(match.Groups["Month"].Value);
-            int day = int.Parse(match.Groups["Day"].Value);
-            var baseDate = new DateTime(year, month, day);
 
             using (var connection = new SqliteConnection($"Data Source={dataSourceFile.FullName}"))
             {
@@ -67,8 +61,8 @@ namespace P1Report.Infra.Pdf.Services
 
                 _logger.Debug("Getting data");
 
-                var electricityNumbersPerHourData = GetElectricityNumbers(baseDate, connection);
-                var electricityNumbersAllDayData = GetNumbersBetween(connection, baseDate, baseDate.AddDays(1), day);
+                var electricityNumbersPerHourData = GetElectricityNumbers( connection, baseDate.Value);
+                var electricityNumbersAllDayData = GetNumbersBetween(connection, baseDate.Value, baseDate.Value.AddDays(1), baseDate.Value.Day);
 
                 _logger.Debug("Creating graph");
 
@@ -126,6 +120,24 @@ namespace P1Report.Infra.Pdf.Services
             }
         }
 
+        private DateTime? ExtractDateFromFileName(
+            string filename)
+        {
+            var match = _dateRegex.Match(filename);
+            if (!match.Success)
+            {
+                _logger.Error("Data source file filename does not start with a date. The first 8 characters should mark a date. example: '20211101-p1power.db'");
+
+                return null;
+            }
+
+            int year = int.Parse(match.Groups["Year"].Value);
+            int month = int.Parse(match.Groups["Month"].Value);
+            int day = int.Parse(match.Groups["Day"].Value);
+
+            return new DateTime(year, month, day);
+        }
+
         public static string GetDataURL(
             byte[] bitmap)
         {
@@ -133,7 +145,7 @@ namespace P1Report.Infra.Pdf.Services
                         + ";base64,"
                         + Convert.ToBase64String(bitmap) + "\" />";
         }
-
+        
         private static byte[] CreateGraph(
             string label,
             IEnumerable<ElectricityNumbers> data)
@@ -169,8 +181,8 @@ namespace P1Report.Infra.Pdf.Services
         }
 
         private static IEnumerable<ElectricityNumbers> GetElectricityNumbers(
-            DateTime baseDate,
-            SqliteConnection connection)
+            SqliteConnection connection,
+            DateTime baseDate)
         {
             for (int i = 0; i < 24; i++)
             {
@@ -195,7 +207,6 @@ namespace P1Report.Infra.Pdf.Services
         {
             using (var cmd = connection.CreateCommand())
             {
-
                 var minDateParam = cmd.Parameters.Add("@MinDate", SqliteType.Text);
                 minDateParam.Value = minDate.ToString("yyyy-MM-dd HH:mm:ss");
 

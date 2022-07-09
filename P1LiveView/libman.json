@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "defaultProvider": "unpkg",
+  "libraries": [
+    {
+      "library": "@microsoft/signalr@latest",
+      "destination": "wwwroot/lib/microsoft/signalr/"
+    },
+    {
+      "library": "chart.js@3.8.0",
+      "destination": "wwwroot/lib/chart.js/"
+    }
+  ,
+{
+  "provider": "cdnjs",
+  "library": "bootstrap-icons@1.8.3",
+  "destination": "wwwroot/lib/bootstrap-icons/"
+}
+]
+}

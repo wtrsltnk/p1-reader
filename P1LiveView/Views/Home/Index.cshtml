@@ -1,0 +1,64 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<canvas id="myChart" width="400" height="400"></canvas>
+@section Scripts {
+<script>
+const DATA_COUNT = 7;
+const NUMBER_CFG = {count: DATA_COUNT, min: -100, max: 100};
+
+const labels = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December'
+];
+const data = {
+  labels: labels,
+  datasets: [
+    {
+      label: 'Energieleverancier',
+      data: [],
+      borderColor: 'rgb(54, 162, 235)',
+      backgroundColor: 'rgba(54, 162, 235, 0.5)',
+    },
+    {
+      label: 'Zonnenpanelen',
+      data: [],
+      borderColor: 'rgb(54, 235, 162)',
+      backgroundColor: 'rgba(54, 235, 162, 0.5)',
+    }
+  ]
+};
+
+const config = {
+  type: 'line',
+  data: data,
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: 'Live slimmemeter waarden'
+      }
+    }
+  },
+};
+
+const ctx = document.getElementById('myChart').getContext('2d');
+window.myChart = new Chart(ctx, config);
+
+</script>
+}

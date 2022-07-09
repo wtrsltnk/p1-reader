@@ -1,10 +1,8 @@
-﻿using Microsoft.Extensions.Configuration;
-using P1ReaderApp.Interfaces;
+﻿using P1ReaderApp.Interfaces;
 using P1ReaderApp.Model;
 using Serilog;
 using System;
 using System.Collections.Generic;
-using System.IO.Ports;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,27 +12,16 @@ namespace P1ReaderApp.Services
         IDisposable
     {
         private readonly IMessageBuffer<P1MessageCollection> _messageBuffer;
-        private readonly SerialPort _serialPort;
+        private readonly ISerialPort _serialPort;
 
         private CancellationTokenSource _cancellationTokenSource;
         private bool _disposedValue = false;
 
         public SerialPortReader(
-            IConfiguration config,
+            ISerialPort serialPort,
             IMessageBuffer<P1MessageCollection> messageBufferService)
         {
-            var p1Config = new P1Config();
-
-            config.GetSection("P1Config").Bind(p1Config);
-
-            _serialPort = new SerialPort(p1Config.Port, p1Config.BaudRate)
-            {
-                ReadTimeout = 20_000,
-                Parity = (Parity)p1Config.Parity,
-                DataBits = p1Config.DataBits,
-                StopBits = (StopBits)p1Config.StopBits
-            };
-
+            _serialPort = serialPort;
             _messageBuffer = messageBufferService;
         }
 
