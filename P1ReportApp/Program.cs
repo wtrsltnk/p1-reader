@@ -23,7 +23,7 @@ namespace P1ReportApp
 
             args = new string[]
             {
-                @"\\neofelis\yt-dl\slimmemeter\20220328-p1power.db",
+                @"\\neofelis\yt-dl\slimmemeter\20220708-p1power.db",
             };
 
             foreach (var arg in args)

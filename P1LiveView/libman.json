@@ -9,12 +9,19 @@
     {
       "library": "chart.js@3.8.0",
       "destination": "wwwroot/lib/chart.js/"
+    },
+    {
+      "provider": "cdnjs",
+      "library": "bootstrap-icons@1.8.3",
+      "destination": "wwwroot/lib/bootstrap-icons/",
+      "files": [
+        "bootstrap-icons.svg",
+        "font/bootstrap-icons.css",
+        "font/bootstrap-icons.json",
+        "font/bootstrap-icons.min.css",
+        "font/fonts/bootstrap-icons.woff",
+        "font/fonts/bootstrap-icons.woff2"
+      ]
     }
-  ,
-{
-  "provider": "cdnjs",
-  "library": "bootstrap-icons@1.8.3",
-  "destination": "wwwroot/lib/bootstrap-icons/"
-}
-]
+  ]
 }

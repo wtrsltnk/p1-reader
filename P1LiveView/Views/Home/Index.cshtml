@@ -1,29 +1,20 @@
-﻿@{
+﻿@using P1Reader.Domain.P1;
+
+@model IEnumerable<Measurement>;
+
+@{
     ViewData["Title"] = "Home Page";
 }
 
 <canvas id="myChart" width="400" height="400"></canvas>
+
 @section Scripts {
 <script>
 const DATA_COUNT = 7;
 const NUMBER_CFG = {count: DATA_COUNT, min: -100, max: 100};
 
-const labels = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December'
-];
 const data = {
-  labels: labels,
+  labels: [],
   datasets: [
     {
       label: 'Energieleverancier',
@@ -45,6 +36,7 @@ const config = {
   data: data,
   options: {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top',
@@ -59,6 +51,15 @@ const config = {
 
 const ctx = document.getElementById('myChart').getContext('2d');
 window.myChart = new Chart(ctx, config);
+
+$(document).ready(function() {
+    let measurements = @Html.Raw(Json.Serialize(Model.ToArray()));
+    window.maxMeasurementCount = measurements.length;
+    for (let measurement of measurements) {
+        AddToChart(measurement, false);
+    }
+    window.myChart.update();
+});
 
 </script>
 }

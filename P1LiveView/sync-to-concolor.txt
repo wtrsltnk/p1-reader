@@ -4,5 +4,5 @@
 #       dotnet publish -c release -r linux-arm --no-self-contained && winscp /script=sync-to-concolor.txt
 
 open "raspberrypi"
-synchronize remote -delete "C:\Code\dotnet\p1-reader-github\P1ReaderApp\bin\release\net6.0\linux-arm\publish" "/home/pi/apps/home/P1ReaderApp"
+synchronize remote -delete "C:\Code\dotnet\p1-reader-github\P1LiveView\bin\release\net6.0\linux-arm\publish" "/home/pi/apps/home/P1LiveView"
 exit
