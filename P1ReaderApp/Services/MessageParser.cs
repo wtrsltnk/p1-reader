@@ -20,14 +20,17 @@ namespace P1ReaderApp.Services
     {
         private readonly IMessageBuffer<Measurement> _measurementsBuffer;
         private readonly IMapper<P1Measurements, Measurement> _measurementMapper;
+        private readonly ILogger _logger;
         private IDictionary<string, OBISField> _fields;
 
         public MessageParser(
             IMessageBuffer<Measurement> measurementsBuffer,
-            IMapper<P1Measurements, Measurement> measurementMapper)
+            IMapper<P1Measurements, Measurement> measurementMapper,
+            ILogger logger)
         {
             _measurementsBuffer = measurementsBuffer;
             _measurementMapper = measurementMapper;
+            _logger = logger;
             CreateFieldDictionary();
         }
 
@@ -73,7 +76,7 @@ namespace P1ReaderApp.Services
             }
             catch (Exception exception)
             {
-                Log.Error(exception, "Could not parse serial message");
+                _logger.Error(exception, "Could not parse serial message");
             }
 
             return measurements;
@@ -109,6 +112,8 @@ namespace P1ReaderApp.Services
             }
             catch (Exception exc)
             {
+                _logger.Error(exc, "Could not GetDecimalField");
+
                 throw new MessageParseException(fieldName, fieldValue, "decimal", exc);
             }
         }
@@ -150,6 +155,8 @@ namespace P1ReaderApp.Services
             }
             catch (Exception exc)
             {
+                _logger.Error(exc, "Could not GetIntegerField");
+
                 throw new MessageParseException(fieldName, fieldValue, "int", exc);
             }
         }

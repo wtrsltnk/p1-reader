@@ -4,18 +4,23 @@ using P1LiveView.Models;
 using P1Reader.Domain.P1;
 using P1Reader.Infra.Sqlite.Interfaces;
 using P1Reader.Infra.Sqlite.Services;
+using Serilog;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace P1LiveView.Controllers
 {
     public class HomeController : Controller
     {
         private readonly IConnectionFactory<SqliteConnection> _connectionFactory;
-        private readonly ILogger<HomeController> _logger;
+        private readonly ILogger _logger;
 
         public HomeController(
             IConnectionFactory<SqliteConnection> connectionFactory,
-            ILogger<HomeController> logger)
+            ILogger logger)
         {
             _connectionFactory = connectionFactory;
             _logger = logger;

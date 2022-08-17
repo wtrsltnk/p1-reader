@@ -16,7 +16,7 @@ namespace P1ReaderApp.Tests
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
             var messageBuffer = new MessageBuffer<Measurement>();
-            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper(), null);
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection
@@ -63,7 +63,7 @@ namespace P1ReaderApp.Tests
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
             var messageBuffer = new MessageBuffer<Measurement>();
-            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper(), null);
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection
@@ -110,7 +110,7 @@ namespace P1ReaderApp.Tests
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
             var messageBuffer = new MessageBuffer<Measurement>();
-            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper(), null);
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection
@@ -157,7 +157,7 @@ namespace P1ReaderApp.Tests
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
             var messageBuffer = new MessageBuffer<Measurement>();
-            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper(), null);
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection
@@ -204,7 +204,7 @@ namespace P1ReaderApp.Tests
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
             var messageBuffer = new MessageBuffer<Measurement>();
-            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper(), null);
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection
@@ -251,7 +251,7 @@ namespace P1ReaderApp.Tests
             // Arrange
             var expectedTimestamp = DateTime.UtcNow;
             var messageBuffer = new MessageBuffer<Measurement>();
-            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper());
+            var parser = new MessageParser(messageBuffer, new P1MeasurementsMapper(), null);
 
             // Act
             var measurements = await parser.ParseSerialMessages(new P1MessageCollection

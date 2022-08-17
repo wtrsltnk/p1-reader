@@ -22,7 +22,7 @@ namespace P1Aggregator
                 .ReadFrom.Configuration(config)
                 .CreateLogger();
 
-            var mysqlStorage = new MysqlDbStorage(config);
+            var mysqlStorage = new MysqlDbStorage(config, Log.Logger);
 
             foreach (var arg in args)
             {

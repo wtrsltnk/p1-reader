@@ -13,8 +13,6 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using WkHtmlToPdfDotNet;
-using WkHtmlToPdfDotNet.Contracts;
 
 namespace P1ReaderApp
 {
@@ -34,14 +32,11 @@ namespace P1ReaderApp
         {
             services.AddScoped(s => Configuration);
 
-            services.AddScoped(sp => Log.Logger);
             services.AddScoped<IMessageBuffer<P1MessageCollection>, MessageBuffer<P1MessageCollection>>();
             services.AddScoped<IMessageBuffer<Measurement>, MessageBuffer<Measurement>>();
             services.AddScoped<MessageParser>();
             services.AddScoped<IMapper<P1Measurements, Measurement>, P1MeasurementsMapper>();
             services.AddScoped<SerialPortReader>();
-
-            services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
 
             commandLineApplication
                 .Command("signalr", command =>
@@ -73,14 +68,25 @@ namespace P1ReaderApp
         private static async Task Main(
             string[] args)
         {
-            var config = new ConfigurationBuilder()
+            var configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json", optional: false)
+                .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.Development.json")
                 .Build();
 
-            var program = new Program(config);
+            var logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(configuration)
+                .CreateLogger();
+
+            logger.Information("Starting up");
+
+            var program = new Program(configuration);
 
             var services = new ServiceCollection();
+
+            services.AddScoped<ILogger>(sp => logger);
+            services.AddLogging(builder => builder.AddSerilog(logger));
+
             var commandLineApplication = new CommandLineApplication(throwOnUnexpectedArg: false);
 
             commandLineApplication
@@ -105,54 +111,47 @@ namespace P1ReaderApp
             using var serviceProvider = services
                 .BuildServiceProvider();
 
-            await Run(serviceProvider);
+            try
+            {
+                await Run(serviceProvider);
+            }
+            catch (Exception exc)
+            {
+                logger.Fatal(exc, "Fatal exception during application execute");
+                throw;
+            }
         }
 
         public static async Task Run(
             IServiceProvider serviceProvider)
         {
-            try
-            {
-                var config = serviceProvider
-                    .GetService<IConfiguration>();
+            var serialMessageBuffer = serviceProvider
+                .GetService<IMessageBuffer<P1MessageCollection>>();
 
-                Log.Logger = new LoggerConfiguration()
-                    .ReadFrom.Configuration(config)
-                    .CreateLogger();
+            var measurementsBuffer = serviceProvider
+                .GetService<IMessageBuffer<Measurement>>();
 
-                var serialMessageBuffer = serviceProvider
-                    .GetService<IMessageBuffer<P1MessageCollection>>();
+            var messageParser = serviceProvider
+                .GetService<MessageParser>();
 
-                var measurementsBuffer = serviceProvider
-                    .GetService<IMessageBuffer<Measurement>>();
+            var storage = serviceProvider
+                .GetService<IStorage>();
 
-                var messageParser = serviceProvider
-                    .GetService<MessageParser>();
+            serialMessageBuffer
+                .RegisterMessageHandler(messageParser.ParseSerialMessages);
 
-                var storage = serviceProvider
-                    .GetService<IStorage>();
+            measurementsBuffer
+                .RegisterMessageHandler(storage.SaveP1MeasurementAsync);
 
-                serialMessageBuffer
-                    .RegisterMessageHandler(messageParser.ParseSerialMessages);
+            var serialPortReader = serviceProvider
+                .GetService<SerialPortReader>();
 
-                measurementsBuffer
-                    .RegisterMessageHandler(storage.SaveP1MeasurementAsync);
+            serialPortReader
+                .StartReading();
 
-                var serialPortReader = serviceProvider
-                    .GetService<SerialPortReader>();
+            Console.ReadLine();
 
-                serialPortReader
-                    .StartReading();
-
-                Console.ReadLine();
-
-                await WaitForCancellation();
-            }
-            catch (Exception exc)
-            {
-                Log.Fatal(exc, "Fatal exception during application execute");
-                throw;
-            }
+            await WaitForCancellation();
         }
 
         private static async Task<int> WaitForCancellation()

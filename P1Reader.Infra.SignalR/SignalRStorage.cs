@@ -43,20 +43,6 @@ namespace P1Reader.Infra.SignalR
             await _connection.StartAsync();
         }
 
-        public Task<ElectricityNumbers> GetElectricityNumbersBetweenAsync(
-            DateTime start,
-            DateTime end)
-        {
-            return Task.FromResult(new ElectricityNumbers());
-        }
-
-        public Task<IEnumerable<Measurement>> GetMeasurementsBetweenAsync(
-            DateTime start,
-            DateTime end)
-        {
-            return Task.FromResult(Enumerable.Empty<Measurement>());
-        }
-
         public async Task SaveP1MeasurementAsync(
             Measurement p1Measurements)
         {

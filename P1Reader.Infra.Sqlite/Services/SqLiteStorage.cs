@@ -2,13 +2,11 @@
 using P1Reader.Domain;
 using P1Reader.Domain.Interfaces;
 using P1Reader.Domain.P1;
-using P1Reader.Domain.Reporting;
 using P1Reader.Infra.Sqlite.Interfaces;
 using Polly;
 using Polly.Retry;
 using Serilog;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace P1Reader.Infra.Sqlite.Services
@@ -36,7 +34,7 @@ namespace P1Reader.Infra.Sqlite.Services
                     },
                     onRetry: (exception, retryDelay) =>
                     {
-                        Log.Error(exception, "Exception during save to sqlite, retrying after {retryDelay}", retryDelay);
+                        _logger.Error(exception, "Exception during save to sqlite, retrying after {retryDelay}", retryDelay);
                     });
         }
 
@@ -84,21 +82,13 @@ namespace P1Reader.Infra.Sqlite.Services
 
                 if (result != 1)
                 {
+                    _logger.Error("Error writing to sqlite: {result} rows affected", result);
+
                     throw new StorageWriteException($"Error writing to sqlite: {result} rows affected");
                 }
 
                 _logger.Verbose("Saving P1 measurement to Sqlite was succesfull");
             });
-        }
-
-        public Task<IEnumerable<Measurement>> GetMeasurementsBetweenAsync(DateTime start, DateTime end)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<ElectricityNumbers> GetElectricityNumbersBetweenAsync(DateTime start, DateTime end)
-        {
-            throw new NotImplementedException();
         }
 
         public const string InsertQuery = @"INSERT INTO p1power (ActualElectricityPowerDelivery, ActualElectricityPowerDraw, ElectricityDeliveredByClientTariff1, ElectricityDeliveredByClientTariff2, ElectricityDeliveredToClientTariff1, ElectricityDeliveredToClientTariff2, InstantaneousActivePowerDeliveryL1, InstantaneousActivePowerDeliveryL2, InstantaneousActivePowerDeliveryL3, InstantaneousActivePowerDrawL1, InstantaneousActivePowerDrawL2, InstantaneousActivePowerDrawL3, InstantaneousCurrentL1, InstantaneousCurrentL2, InstantaneousCurrentL3, InstantaneousVoltageL1, InstantaneousVoltageL2, InstantaneousVoltageL3, NetActualElectricityPower, TotalInstantaneousCurrent, TotalInstantaneousVoltage, TimeStamp) VALUES (@ActualElectricityPowerDelivery, @ActualElectricityPowerDraw, @ElectricityDeliveredByClientTariff1, @ElectricityDeliveredByClientTariff2, @ElectricityDeliveredToClientTariff1, @ElectricityDeliveredToClientTariff2, @InstantaneousActivePowerDeliveryL1, @InstantaneousActivePowerDeliveryL2, @InstantaneousActivePowerDeliveryL3, @InstantaneousActivePowerDrawL1, @InstantaneousActivePowerDrawL2, @InstantaneousActivePowerDrawL3, @InstantaneousCurrentL1, @InstantaneousCurrentL2, @InstantaneousCurrentL3, @InstantaneousVoltageL1, @InstantaneousVoltageL2, @InstantaneousVoltageL3, @NetActualElectricityPower, @TotalInstantaneousCurrent, @TotalInstantaneousVoltage, @TimeStamp)";

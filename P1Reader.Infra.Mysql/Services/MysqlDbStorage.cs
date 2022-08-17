@@ -14,14 +14,18 @@ using System.Threading.Tasks;
 namespace P1ReaderApp.Storage
 {
     public class MysqlDbStorage :
-        IStorage
+        IStorage,
+        IMeasurementsService
     {
+        private readonly ILogger _logger;
         private readonly MySqlConnection _connection;
         private readonly AsyncRetryPolicy _retryPolicy;
 
         public MysqlDbStorage(
-            IConfiguration config)
+            IConfiguration config,
+            ILogger logger)
         {
+            _logger= logger;
             _connection = new MySqlConnection(config.GetSection("MysqlConnection").Value);
             _connection.Open();
 
@@ -34,14 +38,14 @@ namespace P1ReaderApp.Storage
                     },
                     onRetry: (exception, retryDelay) =>
                     {
-                        Log.Error(exception, "Exception during save to influx, retrying after {retryDelay}", retryDelay);
+                        _logger.Error(exception, "Exception during save to influx, retrying after {retryDelay}", retryDelay);
                     });
         }
 
         public async Task SaveP1MeasurementAsync(
             Measurement p1Measurements)
         {
-            Log.Verbose("Saving P1 measurement ({timestamp}) to MysqlDB {@measurements}", p1Measurements.TimeStamp, p1Measurements);
+            _logger.Verbose("Saving P1 measurement ({timestamp}) to MysqlDB {@measurements}", p1Measurements.TimeStamp, p1Measurements);
 
             var command = _connection.CreateCommand();
 
@@ -80,7 +84,7 @@ namespace P1ReaderApp.Storage
                     throw new StorageWriteException($"Error writing to mysqldb: {result} rows affected");
                 }
 
-                Log.Debug("Saving P1 measurement to MysqlDB was succesfull");
+                _logger.Debug("Saving P1 measurement to MysqlDB was succesfull");
             });
         }
 

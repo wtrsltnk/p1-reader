@@ -12,6 +12,7 @@ namespace P1ReaderApp.Services
         IDisposable
     {
         private readonly IMessageBuffer<P1MessageCollection> _messageBuffer;
+        private readonly ILogger _logger;
         private readonly ISerialPort _serialPort;
 
         private CancellationTokenSource _cancellationTokenSource;
@@ -19,15 +20,19 @@ namespace P1ReaderApp.Services
 
         public SerialPortReader(
             ISerialPort serialPort,
-            IMessageBuffer<P1MessageCollection> messageBufferService)
+            IMessageBuffer<P1MessageCollection> messageBufferService,
+            ILogger logger)
         {
             _serialPort = serialPort;
             _messageBuffer = messageBufferService;
+            _logger = logger;
         }
 
         // This code added to correctly implement the disposable pattern.
         public void Dispose()
         {
+            _logger.Information("Disposing SerialPortReader");
+
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -41,22 +46,22 @@ namespace P1ReaderApp.Services
 
                 try
                 {
-                    Log.Information("Opening serial port");
+                    _logger.Information("Opening serial port");
 
                     _serialPort.Open();
 
-                    Log.Information("Starting read task");
+                    _logger.Information("Starting read task");
 
                     CreateReadTask(_cancellationTokenSource.Token);
                 }
                 catch (Exception exception)
                 {
-                    Log.Fatal(exception, "Error during serial port read");
+                    _logger.Fatal(exception, "Error during serial port read");
                 }
             }
             else
             {
-                Log.Error("Cannot read serial port: already opened");
+                _logger.Error("Cannot read serial port: already opened");
             }
         }
 
@@ -97,7 +102,7 @@ namespace P1ReaderApp.Services
                 }
                 catch (Exception exception)
                 {
-                    Log.Error(exception, "Error during read");
+                    _logger.Error(exception, "Error during read");
                 }
             }, cancellationToken);
         }
@@ -128,21 +133,21 @@ namespace P1ReaderApp.Services
                         ReceivedUtc = DateTime.UtcNow,
                     }, cancellationToken);
 
-                if (Log.IsEnabled(Serilog.Events.LogEventLevel.Verbose))
+                if (_logger.IsEnabled(Serilog.Events.LogEventLevel.Verbose))
                 {
                     foreach (var message in messages)
                     {
-                        Log.Verbose("Serial message:{message}", message);
+                        _logger.Verbose("Serial message:{message}", message);
                     }
                 }
             }
             catch (TimeoutException exc)
             {
-                Log.Debug("Timeout exception {message}", exc.Message);
+                _logger.Debug("Timeout exception {message}", exc.Message);
             }
             catch (Exception exception)
             {
-                Log.Error(exception, "Unexpected exception during serial read");
+                _logger.Error(exception, "Unexpected exception during serial read");
             }
         }
     }

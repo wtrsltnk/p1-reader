@@ -39,7 +39,7 @@ namespace P1Reader.Infra.Sqlite.Factories
 
             var diffDays = (timestamp.Date - _lastTimeStamp.Value.Date).TotalDays;
 
-            Log.Verbose("A sqlite connection requested with diffDays={diffDays}", diffDays);
+            _logger.Verbose("A sqlite connection requested with diffDays={diffDays}", diffDays);
 
             if (diffDays < 0)
             {
